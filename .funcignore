@@ -1,0 +1,14 @@
+.git
+.git*
+.vscode
+.cargo
+.funcignore
+src
+local.settings.json
+target
+handler.exe
+Cargo.lock
+Cargo.toml
+README.md
+azure-pipelines.yml
+LICENSE

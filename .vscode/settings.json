@@ -1,0 +1,14 @@
+{
+  "azurite.location": ".azurite",
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "azureFunctions.deploySubpath": ".",
+  "azureFunctions.projectLanguage": "Custom",
+  "azureFunctions.projectRuntime": "~4",
+  "debug.internalConsoleOptions": "neverOpen",
+  "cSpell.words": [
+    "CUSTOMHANDLER",
+    "keyvault",
+    "reqwest"
+  ]
+}

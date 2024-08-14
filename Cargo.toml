@@ -1,0 +1,25 @@
+[package]
+name = "handler"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["rt", "macros", "rt-multi-thread"] }
+axum = "0.7"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+azure_core = "0.20.0"
+azure_identity = { version = "0.20.0", default-features = false, features = ["enable_reqwest_rustls"] }
+azure_security_keyvault = { version = "0.20.0", default-features = false, features = ["enable_reqwest_rustls"] }
+time = "0.3"
+futures = "0.3"
+url = "2.4"
+base64 = "0.22"
+sha2 = "0.10.8"
+log = "0.4"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
