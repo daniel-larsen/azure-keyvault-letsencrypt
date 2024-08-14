@@ -9,17 +9,13 @@ pub async fn auth(
     next: Next,
 ) -> Response {
 
-    if request.uri().path().contains("/.well-known/acme-challenge/") {
+    if request.uri().path().contains("/.well-known/acme-challenge/") || 
+        request.uri().path().contains("/checkCertificates") || 
+        request.uri().path().contains("/healthCheck") 
+    {
         return next.run(request).await;
     }
 
-    if request.uri().path().contains("/checkCertificates") {
-        return next.run(request).await;
-    }
-
-    if request.uri().path().contains("/healthCheck") {
-        return next.run(request).await;
-    }
 
     #[cfg(not(debug_assertions))]
     if request.headers().contains_key("x-ms-client-principal-id").not() {
