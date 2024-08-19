@@ -2,6 +2,8 @@ use axum::{middleware, http::StatusCode, routing::{get, post}, Router};
 use azure_security_keyvault::prelude::*;
 use utils::layers::auth;
 use std::net::SocketAddr;
+use azure_data_cosmos::prelude::{AuthorizationToken, CosmosClient};
+use crate::utils::tracing::cosmos_tracing;
 
 mod acme;
 mod http;
@@ -25,13 +27,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     };
 
     let mut args = std::env::args();
-    let keyvault_url = args
-        .nth(1)
-        .expect("Missing KEYVAULT_URL environment variable.");
-
-    let email = args
-        .next()
-        .expect("Missing ACCOUNT_EMAIL environment variable.");
+    let keyvault_url = args.nth(1).expect("Missing KEYVAULT_URL environment variable.");
+    let email = args.next().expect("Missing ACCOUNT_EMAIL environment variable.");
 
     let keyvault_client = KeyvaultClient::new(&keyvault_url, azure_identity::create_credential()?)?;
 
@@ -41,6 +38,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         account_email: email,
     };
 
+    let master_key = args.next().expect("Missing ACCOUNT_EMAIL environment variable.");
+    let authorization_token = AuthorizationToken::primary_key(&master_key).unwrap();
+    let cosmos_client = CosmosClient::new("letsencrypt", authorization_token);
+    let database_client = cosmos_client.database_client("letsencrypt");
+
     let app = Router::new()
         .route("/healthCheck", get(StatusCode::OK))
         .route("/checkCertificates", post(timer::check::run))
@@ -49,7 +51,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .route("/register", post(http::new::run))
         .route("/", get(http::status::run))
         .with_state(environment)
-        .layer(middleware::from_fn(auth));
+        .layer(middleware::from_fn(auth))
+        .layer(middleware::from_fn_with_state(database_client, cosmos_tracing));
 
     // run our app with hyper
     let addr: SocketAddr = ([127, 0, 0, 1], port).into();

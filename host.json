@@ -10,7 +10,8 @@
       "defaultExecutablePath": "handler",
       "arguments": [
         "%KEYVAULT_URL%",
-        "%ACCOUNT_EMAIL%"
+        "%ACCOUNT_EMAIL%",
+        "%DATABASE_CONNECTION_STRING%"
       ]
     },
     "enableForwardingHttpRequest": true
