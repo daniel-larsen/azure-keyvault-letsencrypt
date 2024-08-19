@@ -38,6 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         account_email: email,
     };
 
+    let _ = tracing_log::LogTracer::init();
     let master_key = args.next().expect("Missing ACCOUNT_EMAIL environment variable.");
     let authorization_token = AuthorizationToken::primary_key(&master_key).unwrap();
     let cosmos_client = CosmosClient::new("letsencrypt", authorization_token);
