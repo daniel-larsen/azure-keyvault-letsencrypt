@@ -1,7 +1,7 @@
 use axum::{middleware, http::StatusCode, routing::{get, post}, Router};
 use azure_security_keyvault::prelude::*;
 use utils::layers::auth;
-use std::net::SocketAddr;
+use std::{collections::HashMap, net::SocketAddr, sync::{Arc, Mutex, RwLock}};
 use azure_data_cosmos::prelude::{AuthorizationToken, CosmosClient};
 use crate::utils::tracing::cosmos_tracing;
 
@@ -11,11 +11,14 @@ mod keyvault;
 mod timer;
 mod utils;
 
-#[derive(Debug, Clone)]
-pub struct Environment {
+type Environment = Arc<EnvironmentInner>;
+
+#[derive(Debug)]
+pub struct EnvironmentInner {
     certificate_client: CertificateClient,
     key_client: KeyClient,
     account_email: String,
+    challenge_store: RwLock<HashMap<String, String>>
 }
 
 #[tokio::main]
@@ -32,11 +35,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let keyvault_client = KeyvaultClient::new(&keyvault_url, azure_identity::create_credential()?)?;
 
-    let environment = Environment {
+    let challenge_store = HashMap::<String, String>::new();
+
+    let environment_inner = EnvironmentInner {
         certificate_client: keyvault_client.certificate_client(),
         key_client: keyvault_client.key_client(),
         account_email: email,
+        challenge_store: RwLock::new(challenge_store)
     };
+
+    let environment: Environment = Arc::new(environment_inner);
 
     let _ = tracing_log::LogTracer::init();
     let master_key = args.next().expect("Missing ACCOUNT_EMAIL environment variable.");
@@ -51,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .route("/delete", post(http::delete::run))
         .route("/register", post(http::new::run))
         .route("/", get(http::status::run))
-        .with_state(environment)
+        .with_state(Arc::clone(&environment))
         .layer(middleware::from_fn(auth))
         .layer(middleware::from_fn_with_state(database_client, cosmos_tracing));
 

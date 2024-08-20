@@ -88,9 +88,7 @@ impl ChallengeAuthorisation {
         let thumbprint = hasher.finalize();
 
         let challenge_content = format!("{}.{}", challenge_infos.token, b64(thumbprint));
-
-        let file_name = format!("./{}.txt", challenge_infos.token);
-        fs::write(file_name, challenge_content)?;
+        env.challenge_store.write().unwrap().insert(challenge_infos.token.clone(), challenge_content);
 
         ChallengeAuthorisation::kick_off_http_challenge(
             client,
