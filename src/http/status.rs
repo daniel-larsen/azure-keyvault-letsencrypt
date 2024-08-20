@@ -2,6 +2,7 @@ use crate::{utils::app_error::AppError, keyvault::cert_name, Environment};
 use axum::{extract::State, http::StatusCode, response::{Html, IntoResponse, Response}};
 use futures::StreamExt;
 use time::format_description;
+use tracing::info;
 
 pub async fn run(
     State(env): State<Environment>,
@@ -24,7 +25,7 @@ pub async fn run(
         .ok_or("Certificates not found")??
         .value;
 
-    log::info!("{} certificates found", certs.len());
+    info!("{} certificates found", certs.len());
 
     for cert in certs.iter() {
         let expiry = cert.attributes.expires_on.ok_or("expiry date not found")?;

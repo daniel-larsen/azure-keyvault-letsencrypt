@@ -6,37 +6,38 @@ use crate::{
     Environment,
 };
 use azure_security_keyvault::prelude::KeyVaultCertificateBaseIdentifier;
+use tracing::info;
 use std::{cmp::Ordering, error::Error};
 use time::{Duration, OffsetDateTime};
 use axum::{http::StatusCode, extract::State, response::{IntoResponse, Response}};
 
 
 pub async fn run(State(env): State<Environment>) -> Result<Response, AppError> {
-    log::info!("{}", "Checking certificates");
+    info!("{}", "Checking certificates");
 
     let certs = match get_certs(&env).await {
         Ok(certs) => certs.value,
         Err(error) => {
-            log::info!("{}", error.to_string());
+            info!("{}", error.to_string());
             return Ok(StatusCode::NOT_FOUND.into_response());
         }
     };
 
-    log::info!("{} certificates found", certs.len());
+    info!("{} certificates found", certs.len());
 
     for cert in certs.iter() {
         let expires_on = cert.attributes.expires_on.ok_or("expiry date not found")?;
         let now = OffsetDateTime::now_utc();
         if expires_on.saturating_sub(Duration::days(30)).cmp(&now) == Ordering::Less {
-            log::info!("{} expires in less than 30 days.", cert.id);
+            info!("{} expires in less than 30 days.", cert.id);
             match update_cert(cert, &env).await {
-                Ok(_) => log::info!("{}", "New Certificate Issued"),
+                Ok(_) => info!("{}", "New Certificate Issued"),
                 Err(error) => {
-                    log::info!("An error occurred updating certificate: {error:?}")
+                    info!("An error occurred updating certificate: {error:?}")
                 }
             };
         } else {
-            log::info!("{} expires in more than 30 days", cert.id);
+            info!("{} expires in more than 30 days", cert.id);
         }
     }
 
@@ -54,11 +55,11 @@ pub async fn update_cert(
     // remove pending operation if exists
     match env.certificate_client.get_operation(&cert_name).await {
         Ok(_) => {
-            log::info!("Pending certificate operation exists");
+            info!("Pending certificate operation exists");
             let _ = env.certificate_client.delete_operation(&cert_name).await?;
-            log::info!("Pending certificate operation deleted");
+            info!("Pending certificate operation deleted");
         }
-        Err(_) => log::info!("No certificate operation pending"),
+        Err(_) => info!("No certificate operation pending"),
     };
 
     cert_new(domain, &cert_name, env).await?;

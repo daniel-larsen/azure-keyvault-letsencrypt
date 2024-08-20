@@ -1,6 +1,7 @@
 use self::{account::Account, directory::Directory};
 use crate::Environment;
 use azure_security_keyvault::prelude::{JsonWebKeyType, KeyVaultGetCertificateResponse};
+use tracing::info;
 use std::error::Error;
 
 pub type Nonce = String;
@@ -22,7 +23,7 @@ pub async fn cert_new(
     id: &str,
     env: &Environment,
 ) -> Result<KeyVaultGetCertificateResponse, Box<dyn Error>> {
-    log::info!(
+    info!(
         "Creating certificate for domain: {} with id: {}",
         domain,
         id
@@ -31,7 +32,7 @@ pub async fn cert_new(
     let http_client = reqwest::Client::new();
     let account_key = env.key_client.get("letsencrypt").await?;
 
-    log::info!("Got account key");
+    info!("Got account key");
 
     // create csr
     let csr = env
@@ -42,40 +43,40 @@ pub async fn cert_new(
         .key_size(2048)
         .await?;
 
-    log::info!("Created CSR");
+    info!("Created CSR");
 
     // Get directory
     let dir_infos = Directory::fetch_dir(&http_client, LETS_ENCRYPT_DIRECTORY).await?;
 
-    log::info!("Got directory");
+    info!("Got directory");
 
     // Create account and accept terms of service
     let new_acc: Account = dir_infos
         .create_account(&http_client, &account_key, env.account_email.as_ref(), env)
         .await?;
 
-    log::info!("Created account");
+    info!("Created account");
 
     // create certificate order
     let order = new_acc
         .create_new_order(&http_client, &dir_infos.new_order, env, domain, csr.csr)
         .await?;
 
-    log::info!("Created certificate order");
+    info!("Created certificate order");
 
     // fetch the auth challenges
     let challenge = order
         .fetch_auth_challenges(&http_client, &new_acc.account_location, env)
         .await?;
 
-    log::info!("Fetched auth challenges");
+    info!("Fetched auth challenges");
 
     // complete the challenge and save the nonce that's needed for further authentification
     let new_nonce = challenge
         .complete_http_challenge(&http_client, &new_acc.account_location, &account_key, env)
         .await?;
 
-    log::info!("Setup http challenge");
+    info!("Setup http challenge");
 
     std::thread::sleep(std::time::Duration::from_secs(10));
 
@@ -84,19 +85,19 @@ pub async fn cert_new(
         .finalize_order(&http_client, &new_acc.account_location, new_nonce, env)
         .await?;
 
-    log::info!("Finalized order");
+    info!("Finalized order");
 
     // retrieve the x5c
     let cert_chain = updated_order
         .download_certificate(&http_client, &new_acc.account_location, env)
         .await?;
 
-    log::info!("Retrieved x5c");
+    info!("Retrieved x5c");
 
     // merge x5c
     let cert = env.certificate_client.merge(id, vec![cert_chain]).await?;
 
-    log::info!("x5c merged");
+    info!("x5c merged");
 
     // return
     Ok(cert)
