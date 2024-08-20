@@ -3,7 +3,7 @@ use azure_data_cosmos::prelude::DatabaseClient;
 use serde::Serialize;
 use time::OffsetDateTime;
 use uuid::Uuid;
-use tracing::{instrument::WithSubscriber, info};
+use tracing::instrument::WithSubscriber;
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use std::sync::{Arc, Mutex};
 use tracing::Level;
@@ -30,7 +30,7 @@ pub async fn cosmos_tracing(
     // saving traces to db
     let collection = env.collection_client("traces");
 
-    let mut traces = LogMessage {
+    let traces = LogMessage {
         id: Uuid::new_v4(),
         time: OffsetDateTime::now_utc(),
         method,
@@ -39,11 +39,6 @@ pub async fn cosmos_tracing(
         key: OffsetDateTime::now_utc().unix_timestamp() / 60, // partitioned by minutes
         traces: events.get()
     };
-
-    // add error message if an error occurred
-    if response.status().is_client_error() || response.status().is_server_error() {
-        traces.traces.push(format!("{:?}", response.body()))
-    }
 
     let _ = collection.create_document::<LogMessage>(traces).await.unwrap();
 
