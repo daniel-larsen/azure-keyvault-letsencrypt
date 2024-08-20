@@ -1,7 +1,7 @@
 use axum::{middleware, http::StatusCode, routing::{get, post}, Router};
 use azure_security_keyvault::prelude::*;
 use utils::layers::auth;
-use std::{collections::HashMap, net::SocketAddr, sync::{Arc, Mutex, RwLock}};
+use std::{collections::HashMap, net::SocketAddr, sync::{Arc, RwLock}};
 use azure_data_cosmos::prelude::{AuthorizationToken, CosmosClient};
 use crate::utils::tracing::cosmos_tracing;
 

@@ -9,7 +9,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sha2::{Digest, Sha256};
-use std::{error::Error, fs};
+use std::error::Error;
 
 /// The current status of the request. The status gets send from
 /// the server in every response and shows the progress as well as

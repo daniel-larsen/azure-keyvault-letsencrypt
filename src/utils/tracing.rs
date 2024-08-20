@@ -24,20 +24,26 @@ pub async fn cosmos_tracing(
     };
     let method = request.method().to_string();
 
+    let time = OffsetDateTime::now_utc();
+    let start = time::Instant::now();
+
     // run handler
     let response = next.run(request).with_subscriber(subscriber).await;
+
+    let duration = start.elapsed();
 
     // saving traces to db
     let collection = env.collection_client("traces");
 
     let traces = LogMessage {
         id: Uuid::new_v4(),
-        time: OffsetDateTime::now_utc(),
+        time,
         method,
         path,
         status: response.status().as_u16(),
-        key: OffsetDateTime::now_utc().unix_timestamp() / 60, // partitioned by minutes
-        traces: events.get()
+        key: time.unix_timestamp() / 60, // partitioned by minutes
+        traces: events.get(),
+        duration: duration.whole_milliseconds()
     };
 
     let _ = collection.create_document::<LogMessage>(traces).await.unwrap();
@@ -54,7 +60,8 @@ pub struct LogMessage {
     pub path: String,
     pub key: i64,
     pub id: Uuid,
-    pub status: u16
+    pub status: u16,
+    pub duration: i128
 }
 
 impl azure_data_cosmos::CosmosEntity for LogMessage {
