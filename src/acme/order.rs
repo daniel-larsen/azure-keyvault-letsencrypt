@@ -1,12 +1,12 @@
 use super::{
-    challenge::ChallengeAuthorisation,
+    challenge::ChallengeAuthorization,
     updated_order::UpdatedOrder,
-    util::{b64, deserialize_to_string, extract_payload_and_nonce, jws, URL_SAFE_ENGINE},
+    util::{deserialize_to_string, extract_payload_and_nonce, jws},
     Nonce,
 };
 use crate::Environment;
 use core::fmt::Debug;
-use base64::Engine;
+use base64::{engine, Engine};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -28,13 +28,13 @@ pub struct Order {
 }
 
 impl Order {
-    /// Fetches the available authorisation options from the server for a certain order.
+    /// Fetches the available authorization options from the server for a certain order.
     pub async fn fetch_auth_challenges(
         &self,
         client: &Client,
         account_url: &str,
         env: &Environment,
-    ) -> Result<ChallengeAuthorisation, Box<dyn Error>> {
+    ) -> Result<ChallengeAuthorization, Box<dyn Error>> {
         let auth_url = self
             .authorizations
             .first()
@@ -61,7 +61,7 @@ impl Order {
 
         tracing::info!("{response:?}");
 
-        let (nonce, mut challenge): (Nonce, ChallengeAuthorisation) =
+        let (nonce, mut challenge): (Nonce, ChallengeAuthorization) =
             extract_payload_and_nonce(response).await?;
 
         challenge.nonce = nonce;
@@ -85,7 +85,7 @@ impl Order {
         "nonce": new_nonce,
         });
 
-        let csr_string = b64(Engine::decode(&URL_SAFE_ENGINE, self.csr)?);
+        let csr_string = engine::general_purpose::STANDARD.decode(self.csr)?;
 
         let payload = json!({ "csr": csr_string });
 

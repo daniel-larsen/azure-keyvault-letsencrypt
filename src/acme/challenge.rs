@@ -36,7 +36,7 @@ pub struct Challenge {
 
 /// Holds information about the authentification options in the `ACME` context.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ChallengeAuthorisation {
+pub struct ChallengeAuthorization {
     pub identifier: serde_json::Value,
     pub status: StatusType,
     pub expires: String,
@@ -46,7 +46,7 @@ pub struct ChallengeAuthorisation {
     pub nonce: Nonce,
 }
 
-impl ChallengeAuthorisation {
+impl ChallengeAuthorization {
     /// Completes the http challenge by opening an `http` server which returns the needed token
     /// under the specified path.
     pub async fn complete_http_challenge(
@@ -62,7 +62,7 @@ impl ChallengeAuthorisation {
             .find(|challenge| challenge.challenge_type == "http-01")
             .ok_or("Currently just http challenges are allowed, so this error is raised if no http challenge is present")?;
 
-        ChallengeAuthorisation::complete_challenge(
+        ChallengeAuthorization::complete_challenge(
             client,
             http_challenge,
             self.nonce,
@@ -90,7 +90,7 @@ impl ChallengeAuthorisation {
         let challenge_content = format!("{}.{}", challenge_infos.token, b64(thumbprint));
         env.challenge_store.write().unwrap().insert(challenge_infos.token.clone(), challenge_content);
 
-        ChallengeAuthorisation::kick_off_http_challenge(
+        ChallengeAuthorization::kick_off_http_challenge(
             client,
             challenge_infos.clone(),
             nonce,
