@@ -71,7 +71,7 @@ pub async fn cert_new(
 
     info!("Fetched auth challenges");
 
-    // complete the challenge and save the nonce that's needed for further authentification
+    // complete the challenge and save the nonce that's needed for further authentication
     let new_nonce = challenge
         .complete_http_challenge(&http_client, &new_acc.account_location, &account_key, env)
         .await?;

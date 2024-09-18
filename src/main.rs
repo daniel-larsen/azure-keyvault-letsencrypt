@@ -57,7 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .route("/checkCertificates", post(timer::check::run))
         .route("/.well-known/acme-challenge/:token", get(http::http_challenge::run).post(http::http_challenge::run))
         .route("/delete", post(http::delete::run))
-        .route("/register", post(http::new::run))
+        .route("/register", post(timer::check::run))
         .route("/", get(http::status::run))
         .with_state(Arc::clone(&environment))
         .layer(middleware::from_fn(auth))
