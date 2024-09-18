@@ -59,8 +59,6 @@ impl Account {
             .send()
             .await?;
 
-        tracing::info!("{response:?}");
-
         let (nonce, mut order): (Nonce, Order) = extract_payload_and_nonce(response).await?;
         order.nonce = nonce;
         order.csr = csr.into();

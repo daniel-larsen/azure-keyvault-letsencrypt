@@ -76,7 +76,13 @@ where
         .to_str()?
         .to_owned();
 
-    Ok((replay_nonce, response.json().await?))
+    let status = response.status();
+    let full = response.bytes().await?;
+    let text = String::from_utf8_lossy(&full);
+
+    tracing::info!("status: {}, body: {}", status, text);
+
+    Ok((replay_nonce, serde_json::from_slice(&full)?))
 }
 
 /// Extracts the `location` and `replay-nonce` header field as well as
