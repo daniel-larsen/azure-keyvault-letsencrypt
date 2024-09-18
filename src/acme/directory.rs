@@ -79,6 +79,8 @@ impl Directory {
             .send()
             .await?;
 
+        tracing::info!("{response:?}");
+
         let (location, nonce, mut account): (String, Nonce, Account) =
             extract_payload_location_and_nonce(response).await?;
 

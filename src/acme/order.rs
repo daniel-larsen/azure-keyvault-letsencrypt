@@ -59,6 +59,8 @@ impl Order {
             .send()
             .await?;
 
+        tracing::info!("{response:?}");
+
         let (nonce, mut challenge): (Nonce, ChallengeAuthorisation) =
             extract_payload_and_nonce(response).await?;
 
@@ -95,6 +97,8 @@ impl Order {
             .body(serde_json::to_string_pretty(&jws)?)
             .send()
             .await?;
+
+        tracing::info!("{response:?}");
 
         let (nonce, mut updated_order): (Nonce, UpdatedOrder) =
             extract_payload_and_nonce(response).await?;
