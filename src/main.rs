@@ -1,8 +1,8 @@
 use axum::{middleware, http::StatusCode, routing::{get, post}, Router};
 use azure_security_keyvault::prelude::*;
 use utils::layers::auth;
-use std::{collections::HashMap, net::SocketAddr, sync::{Arc, RwLock}};
-use azure_data_cosmos::prelude::{AuthorizationToken, CosmosClient};
+use std::{collections::HashMap, env::Args, net::SocketAddr, sync::{Arc, RwLock}};
+use azure_data_cosmos::prelude::{AuthorizationToken, CosmosClient, DatabaseClient};
 use crate::utils::tracing::cosmos_tracing;
 
 mod acme;
@@ -46,11 +46,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let environment: Environment = Arc::new(environment_inner);
 
+    // connect to cosmos db for logging (this is optional)
+    let database_client = cosmos_logging(args).await;
     let _ = tracing_log::LogTracer::init();
-    let master_key = args.next().expect("Missing ACCOUNT_EMAIL environment variable.");
-    let authorization_token = AuthorizationToken::primary_key(&master_key).unwrap();
-    let cosmos_client = CosmosClient::new("letsencrypt", authorization_token);
-    let database_client = cosmos_client.database_client("letsencrypt");
 
     let app = Router::new()
         .route("/healthCheck", get(StatusCode::OK))
@@ -60,8 +58,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .route("/register", get(timer::check::run).post(http::new::run))
         .route("/", get(http::status::run))
         .with_state(Arc::clone(&environment))
-        .layer(middleware::from_fn(auth))
-        .layer(middleware::from_fn_with_state(database_client, cosmos_tracing));
+        .layer(middleware::from_fn(auth));
+
+    // add tracing if connection to cosmos db was successful
+    let app = match database_client {
+        Some(db) => app.layer(middleware::from_fn_with_state(db, cosmos_tracing)),
+        None => app
+    };
 
     // run our app with hyper
     let addr: SocketAddr = ([127, 0, 0, 1], port).into();
@@ -69,4 +72,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     axum::serve(listener, app).await.unwrap();
 
     Ok(())
+}
+
+async fn cosmos_logging(mut args: Args) -> Option<DatabaseClient> {
+    let master_key = args.next()?;
+    let authorization_token = AuthorizationToken::primary_key(&master_key).ok()?;
+    let cosmos_client = CosmosClient::new("letsencrypt", authorization_token);
+    Some(cosmos_client.database_client("letsencrypt"))
 }
