@@ -1,7 +1,7 @@
 use super::{
     challenge::ChallengeAuthorization,
     updated_order::UpdatedOrder,
-    util::{deserialize_to_string, extract_payload_and_nonce, jws},
+    util::{b64, deserialize_to_string, extract_payload_and_nonce, jws},
     Nonce,
 };
 use crate::Environment;
@@ -83,7 +83,7 @@ impl Order {
         "nonce": new_nonce,
         });
 
-        let csr_string = engine::general_purpose::STANDARD.decode(self.csr)?;
+        let csr_string = b64(engine::general_purpose::STANDARD.decode(self.csr)?);
 
         let payload = json!({ "csr": csr_string });
 
